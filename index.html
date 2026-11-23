@@ -63,6 +63,12 @@ h2{font-size:30px;font-weight:700;margin:0 0 8px}
 .board li b{font-variant-numeric:tabular-nums}
 .board li em{font-size:12px}
 .board li.me{background:rgba(255,217,138,.14);color:var(--gold)}
+.meta2{max-width:340px;margin:12px auto 0;text-align:left;font-size:13.5px;color:#cfc9dc;display:grid;gap:6px}
+.meta2 b{color:var(--gold)} .meta2 span{color:var(--muted)}
+.lbBar{height:5px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}.lbBar i{display:block;height:100%;background:var(--gold)}
+.sm{color:var(--muted);font-size:12.5px}.sm.gold{color:var(--gold);margin-top:8px}
+.lbGot{display:flex;flex-wrap:wrap;gap:5px}.lbGot span{font-size:11.5px;border:1px solid rgba(255,217,138,.35);color:var(--gold);border-radius:999px;padding:1px 8px}
+.goals{list-style:none;margin:0;padding:0;display:grid;gap:4px}.goals li{display:flex;justify-content:space-between;gap:10px;font-size:13px}.goals b{flex:none}
 .ios{font-size:13px;color:var(--muted);margin-top:10px}
 </style>
 </head>
@@ -131,7 +137,7 @@ const FONT='"Quicksand",system-ui,sans-serif',INK='#ece8f4',GOLD='#ffd98a';
 const hexRgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
 const hexA=(h,a)=>'rgba('+hexRgb(h).join(',')+','+a+')';
 let W=0,H=0,DPR=1,F=300,HY=200,GY=600,vig=null;
-const CAM_H=5,CAM_BACK=5.5,LANE=2,ZMAX=110;
+const CAM_H=8,CAM_BACK=5.5,LANE=2,ZMAX=110;
 function resize(){DPR=Math.min(LITE?1.5:2,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR|0;cv.height=H*DPR|0;cv.style.width=W+'px';cv.style.height=H+'px';
   F=Math.min(H*.42,W*.8);GY=H*.84;HY=GY-CAM_H*F/CAM_BACK;vig=null}
 addEventListener('resize',resize);resize();
@@ -391,47 +397,73 @@ const OB={
   procrastination:{col:'#9ab0a0',shape:'lazy',eyes:'shut',lo:0,hi:.4,r:.6,word:'later'},
   denial:{col:'#d9d2c0',shape:'veil',eyes:'shut',lo:0,hi:2.6,r:.75,word:'it\'s fine'},
   impostor:{col:'#a7a2b8',shape:'mask',eyes:'mask',lo:0,hi:1.2,r:.55,word:'fraud'},
+  burnout:{col:'#ff9a4a',shape:'match',eyes:'tired',lo:0,hi:2.2,r:.6,word:'so tired'},
+  shame:{col:'#d98aa0',shape:'bean',eyes:'shy',lo:0,hi:2.4,r:.72,word:'don\'t look'},
+  regret:{col:'#b8a27a',shape:'hourglass',eyes:'down',lo:0,hi:.8,r:.45,word:'if only'},
+  overwhelm:{col:'#b0c45a',shape:'blob',eyes:'wide',lo:0,hi:2.4,r:.75,word:'all at once'},
+  insomnia:{col:'#f2e3a0',shape:'clockface',eyes:'tired',lo:0,hi:2.6,r:.7,word:'can\'t sleep'},
+  grief:{col:'#8a94a8',shape:'drop',eyes:'down',lo:0,hi:2.4,r:.8,word:'i miss it',soft:true},
 };
-const UNLOCK={doubt:0,guilt:0,depression:18,anger:38,procrastination:60,denial:85,impostor:110};
+const UNLOCK={doubt:0,guilt:0,depression:18,anger:35,procrastination:50,burnout:65,denial:80,shame:95,impostor:110,regret:125,overwhelm:140,insomnia:155,grief:170};
+const NEWAT=Object.entries(UNLOCK).filter(([k,t])=>t>0);
 const HELP={
   faith:{n:'faith',col:'#ffd98a',dur:6,ic:'M12 3c2 3 4 5 4 8a4 4 0 0 1-8 0c0-3 2-5 4-8z M12 15v6 M9 21h6'},
   meditation:{n:'meditation',col:'#8ec9ee',dur:4.5,ic:'M12 5c2 3 2 7 0 11c-2-4-2-8 0-11z M12 16c-3 0-7-2-8-5c3-1 6 0 8 5z M12 16c3 0 7-2 8-5c-3-1-6 0-8 5z M5 19h14'},
+  reflection:{n:'self-reflection',col:'#c9a6f0',dur:6,ic:'M6 10a6 7 0 1 0 12 0a6 7 0 1 0-12 0z M9.5 8a3 3 0 0 1 2.5-2.5 M12 17v4 M8 21h8'},
+  journal:{n:'journaling',col:'#f0c27a',dur:8,ic:'M20 3C12 5 7 11 5 19 M20 3c-1 6-5 10-11 12 M5 19l-1 2 M4 21h9'},
   friend:{n:'a friend',col:'#f3a6a0',dur:8,ic:'M6 8a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M3 20c0-3 3-5 6-5s6 2 6 5 M15 9a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0-5 0 M16 14.5c3 0 5 2 5 5'},
 };
 const hp2d={};const icon=k=>hp2d[k]||(hp2d[k]=new Path2D(HELP[k].ic));
 const FORMS=['','spark','ember','glow','lantern','dawn'],FORM_AT=[0,0,400,1200,2500,4500],FORM_SC=[1,1,1.07,1.14,1.22,1.3];
 const FORM_COL=[0,['#fffcf2','#ffe7b0','#ffbf6a'],['#fff4e4','#ffc98a','#ff9a5a'],['#ffffff','#ffe9b8','#ffc46b'],['#fffdf5','#ffe0a0','#f0a850'],['#ffffff','#fff0c8','#ffd27a']];
+const ZONES=[['#ffd98a','gold'],['#ffb4a0','rose'],['#c9a6f0','violet'],['#9fe0d0','sea green'],['#8ec9ee','sky blue'],['#fff3d6','dawn']];
+const HELP_LINE={faith:'nothing can hurt you for a moment',meditation:'everything slows down',friend:'light from every lane comes to you',reflection:'you dodge on your own for a moment',journal:'every light counts twice'};
 const THOUGHTS=['you don\'t have to run from everything','small lights still count','keep going, gently','it\'s okay to slow down','one step, then another','you are not your thoughts'];
 const OVER=['that\'s okay. rest.','some days are like this','breathe. try again.','you went further than you think'];
 
 /* ---------------- game ---------------- */
 function newGame(){S={state:'play',t:0,z:0,v:12,x:0,lane:0,y:0,vy:0,slide:0,hearts:3,inv:0,breath:60,light:0,tier:1,
   objs:[],nextRow:30,fx:[],rings:[],texts:[],banner:{txt:'run toward the light',t:2.4},thought:null,shake:0,
-  help:null,helpT:0,nextHelp:rnd(30,45),quiet:0,nextQuiet:55,camX:0,ph:0,word:null,wordT:0,exCd:0,joy:0,p:{still:0}}}
+  help:null,helpT:0,nextHelp:rnd(30,45),quiet:0,nextQuiet:55,camX:0,ph:0,word:null,wordT:0,exCd:0,joy:0,p:{still:0},
+  streak:0,streakT:0,mult:1,maxMult:1,near:0,floats:0,sinks:0,helpers:0,nextHeart:100,zone:0,maxHearts:3,dim:0,missionsDone:[]};applyBoons()}
 const proj=(x,y,z)=>{const dz=z-S.z+CAM_BACK;if(dz<.4)return null;const k=F/dz;return {x:W/2+(x-S.camX)*k,y:HY+(CAM_H-y)*k,k}};
 const laneX=l=>l*LANE;
+function introCheck(){for(const [k,t] of NEWAT)if(S.t>=t&&!S['in_'+k]){S['in_'+k]=true;S.texts.push({txt:'new: '+k,t:1.6,max:1.6})}}
 function unlocked(){return Object.keys(OB).filter(k=>S.t>=UNLOCK[k])}
 function spawnRow(z){
   if(S.quiet>0){motesLine(pick([-1,0,1]),z,6);return}
   const ks=unlocked(),r=Math.random(),rowLanes=[-1,0,1];
+  if(ks.includes('overwhelm')&&Math.random()<.08){const l=pick([-1,1]);addOb('overwhelm',l,z,{});motesLine(-l,z-4,5);return}
   // patterns: always leave a way through
   if(r<.3&&ks.includes('guilt')){const open=pick(rowLanes),span=open!==0&&Math.random()<.5;const lanes=rowLanes.filter(l=>l!==open);
     if(span)addOb('guilt',(lanes[0]+lanes[1])/2,z,{span:2});else addOb('guilt',pick(lanes),z,{});motesLine(open,z-6,4)}
   else{const n=S.t>40&&Math.random()<.5?2:1,used=[];for(let i=0;i<n;i++){let l;do l=pick(rowLanes);while(used.includes(l));used.push(l);
-      let k=pick(ks.filter(x=>x!=='guilt'))||'doubt';addOb(k,laneX(l)/LANE,z+i*rnd(0,4),{})}
+      let k=pick(ks.filter(x=>x!=='guilt'&&x!=='overwhelm'))||'doubt';addOb(k,laneX(l)/LANE,z+i*rnd(0,4),{})}
     const free=rowLanes.filter(l=>!used.includes(l));if(free.length&&Math.random()<.7)motesLine(pick(free),z-4,5);
     else{const l=used[0],o=S.objs[S.objs.length-1];if(o&&o.hi<=1.2)motesArc(l,o.z)}}
   if(S.t>=S.nextHelp&&!S.help){S.nextHelp=S.t+rnd(35,55);const k=pick(Object.keys(HELP));S.objs.push({kind:'help',k,x:laneX(pick(rowLanes)),y:.8,z:z+10})}}
 function addOb(type,lane,z,o){const T=OB[type];S.objs.push(Object.assign({kind:'ob',type,x:lane*LANE,y:0,z,lo:T.lo,hi:T.hi,span:1,ph:rnd(0,7),dir:Math.random()<.5?-1:1,state:0},o));
-  const ob=S.objs[S.objs.length-1];if(type==='impostor'){ob.disg=true}if(type==='procrastination'){ob.sleep=true}if(type==='anger'){ob.x=pick([-1,1])*LANE;ob.dir=-Math.sign(ob.x)}}
+  const ob=S.objs[S.objs.length-1];if(type==='regret')for(let i=1;i<=2;i++)S.objs.push({kind:'pud',x:ob.x,y:0,z:z-i*5});if(type==='impostor'){ob.disg=true}if(type==='procrastination'){ob.sleep=true}if(type==='anger'){ob.x=pick([-1,1])*LANE;ob.dir=-Math.sign(ob.x)}}
 function motesLine(l,z,n){for(let i=0;i<n;i++)S.objs.push({kind:'mote',x:laneX(l),y:.6,z:z-i*2.4})}
 function motesArc(l,z){for(let i=-3;i<=3;i++){const u=i/3;S.objs.push({kind:'mote',x:laneX(l),y:.6+1.2*(1-u*u),z:z+i*1.4})}}
 function moveLane(d){if(!S||S.state!=='play')return;const nl=clamp(S.lane+d,-1,1);if(nl!==S.lane){S.lane=nl;Sound.play('click')}}
 function jump(){if(!S||S.state!=='play')return;if(S.y<=.01){S.vy=9.2;S.slide=0;Sound.play('ripple')}}
 function slide(){if(!S||S.state!=='play')return;if(S.y>.05)S.vy=-14;S.slide=.65;Sound.play('inhale')}
+function gainLight(){S.streak++;S.streakT=0;S.mult=1+Math.min(2,Math.floor(S.streak/15));S.maxMult=Math.max(S.maxMult,S.mult);
+  const g=S.mult*(S.help&&S.help.k==='journal'?2:1);S.light+=g;if(S.mult>1&&S.streak%15===0){S.texts.push({txt:'light ×'+S.mult,t:1.2,max:1.2});Sound.play('pickup')}
+  while(S.light>=S.nextHeart){S.nextHeart+=S.heartEvery||100;if(S.hearts<S.maxHearts){S.hearts++;renderHearts();S.texts.push({txt:'a little lighter',t:1.4,max:1.4})}}}
+function nearMiss(){if(S.inv>0)return;S.near++;S.light+=2;S.streakT=0;S.texts.push({txt:'close',t:.9,max:.9});Sound.play('tink',12);
+  const p=proj(S.x,.6,S.z);if(p)S.rings.push({x:p.x,y:p.y,r:p.k*.4,R:p.k*1.2,life:.3,max:.3,col:'#fff3d6',w:2})}
+// self-reflection: you dodge on your own
+function autopilot(){const look=Math.max(7,S.v*.55),danger=l=>{let w=null;for(const o of S.objs){if(o.kind!=='ob'||o.gone)continue;const d=o.z-S.z;if(d<0||d>look)continue;
+    const half=o.span*LANE/2-.25+.35;if(Math.abs(o.x-l*LANE)<half&&!(o.type==='impostor'&&o.disg)){if(!w||d<w.d)w={d,o}}}return w};
+  const cur=danger(S.lane);if(!cur)return;const o=cur.o;if(o.hi<=1.25){if(cur.d<S.v*.28)jump();return}if(o.lo>=.5){if(cur.d<S.v*.2)slide();return}
+  let best=null;for(const l of[-1,0,1]){if(Math.abs(l-S.lane)>1)continue;const dg=danger(l),sc=dg?(dg.o.hi<=1.25||dg.o.lo>=.5?50:dg.d):99;if(!best||sc>best.sc)best={l,sc}}if(best&&best.l!==S.lane)moveLane(best.l-S.lane)}
 function burst(x,y,col,n){for(let i=0;i<n;i++){const a=rnd(0,TAU),v=rnd(60,240);S.fx.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,r:rnd(2,4.5),col,life:.6,max:.6})}}
 function hit(o){if(S.inv>0)return;const T=OB[o.type];
   if(S.help&&S.help.k==='faith'){o.gone=true;const p=proj(o.x,1,o.z);if(p)burst(p.x,p.y,T.col,12);Sound.play('pickup');return}
+  S.streak=0;S.mult=1;
+  if(T.soft){S.light=Math.max(0,S.light-15);S.inv=1;S.word={txt:T.word,col:T.col,t:1.5};S.texts.push({txt:'you carry a little of it',t:1.6,max:1.6});o.gone=true;Sound.play('whisper');return}
   S.hearts--;S.inv=1.6;S.v*=.75;S.shake=.5;Sound.play('hurt');S.word={txt:T.word,col:T.col,t:1.5};o.gone=true;
   const p=proj(S.x,.6,S.z);if(p){burst(p.x,p.y,T.col,16);S.rings.push({x:p.x,y:p.y,r:10,R:90,life:.35,max:.35,col:'#f08a7a',w:4})}
   renderHearts();if(S.hearts<=0)gameOver()}
@@ -443,6 +475,11 @@ function update(dt){
   // quiet moments
   if(S.quiet>0){S.quiet-=dt;if(S.quiet<=0)S.banner={txt:'here they come again',t:1.8}}
   else if(S.t>=S.nextQuiet){S.quiet=8;S.nextQuiet=S.t+rnd(55,70);S.banner={txt:'a quiet moment',t:2.2};S.thought={txt:pick(THOUGHTS),t:4};Sound.play('bell')}
+  // light streak: keep gathering to keep it going
+  S.streakT+=dt;if(S.streakT>2.4&&S.streak>0){S.streak=0;S.mult=1}
+  // a new colour of light every 1000 m
+  {const zn=Math.floor(S.z/1000);if(zn!==S.zone){S.zone=zn;const Z2=ZONES[zn%ZONES.length];S.banner={txt:'the light turns '+Z2[1],t:2.2};Sound.play('bell');missionCheck()}}
+  introCheck();if(S.help&&S.help.k==='reflection')autopilot();
   // rows ahead
   while(S.nextRow<S.z+ZMAX){spawnRow(S.nextRow);S.nextRow+=Math.max(15,25-S.t*.04)*(S.quiet>0?.7:1)}
   // player
@@ -453,20 +490,27 @@ function update(dt){
   // objects
   for(const o of S.objs){if(o.gone)continue;const d=o.z-S.z;
     if(o.kind==='ob'){
+      if(o.type==='burnout'&&d<70)o.z-=8*dt*slow;
+      if(o.type==='shame'){const faced=Math.abs(o.x-S.x)<LANE*.6&&d<28;o.shrink=lerp(o.shrink||0,faced?1:0,1-Math.exp(-dt*5));o.hi=2.4-1.65*o.shrink}
+      if(o.type==='overwhelm'&&d<45&&!o.grown){o.grown=true;o.span=2;o.x=o.x/2;Sound.play('warn')}
+      if(o.type==='insomnia'&&d<26&&d>-2)S.dim=Math.max(S.dim,.35);
       if(o.type==='anger'&&d<45){o.x+=o.dir*7*dt*slow;if(Math.abs(o.x)>LANE*1.05){o.x=Math.sign(o.x)*LANE*1.05;o.dir*=-1}}
       if(o.type==='procrastination'&&o.sleep&&d<16){o.sleep=false;o.hi=2.4;o.rise=0;Sound.play('whisper')}
       if(o.rise!==undefined)o.rise=Math.min(1,o.rise+dt*3);
       if(o.type==='impostor'&&o.disg&&d<11){o.disg=false;Sound.play('whisper');S.texts.push({txt:'not a gift',t:1.2,max:1.2})}
-      if(!o.passed&&d<=.3){o.passed=true;const half=o.span*LANE/2-.25+.35;
-        if(Math.abs(o.x-S.x)<half&&top>o.lo+.05&&bot<o.hi-.05&&!(o.type==='impostor'&&o.disg))hit(o)}}
+      if(!o.passed&&d<=.3){o.passed=true;const half=o.span*LANE/2-.25+.35,dx=Math.abs(o.x-S.x);
+        if(dx<half&&top>o.lo+.05&&bot<o.hi-.05&&!(o.type==='impostor'&&o.disg))hit(o);
+        else if(dx<half){if(bot>=o.hi-.05)S.floats++;else if(top<=o.lo+.05)S.sinks++;if(bot>=o.hi-.05&&bot<o.hi+.35)nearMiss()}
+        else if(dx<half+.55&&o.hi>1)nearMiss()}}
+    else if(o.kind==='pud'){if(!o.passed&&d<=.3){o.passed=true;if(Math.abs(o.x-S.x)<1&&S.y<.2){S.v*=.85;S.streak=0;S.mult=1;S.texts.push({txt:'if only',t:1.2,max:1.2})}}}
     else if(o.kind==='mote'){
       if(S.help&&S.help.k==='friend'&&d<14){o.x=lerp(o.x,S.x,1-Math.exp(-dt*8));o.y=lerp(o.y,S.y+.6,1-Math.exp(-dt*8))}
-      if(!o.passed&&d<=.3){o.passed=true;if(Math.abs(o.x-S.x)<.9&&Math.abs(o.y-(S.y+.5))<1.1){o.gone=true;S.light++;Sound.play('tink',S.light);
-        if(S.light%100===0&&S.hearts<3){S.hearts++;renderHearts();S.texts.push({txt:'a little lighter',t:1.4,max:1.4})}}}}
+      if(!o.passed&&d<=.3){o.passed=true;if(Math.abs(o.x-S.x)<.9&&Math.abs(o.y-(S.y+.5))<1.1){o.gone=true;gainLight();Sound.play('tink',S.streak)}}}
     else if(o.kind==='help'){if(!o.passed&&d<=.3){o.passed=true;if(Math.abs(o.x-S.x)<1&&Math.abs(o.y-(S.y+.5))<1.3){o.gone=true;const H2=HELP[o.k];
-        S.help={k:o.k,t:H2.dur};$('helpTag').textContent=H2.n;$('helpTag').style.color=H2.col;S.banner={txt:H2.n,t:1.6};S.joy=1.5;Sound.play('form');
+        S.help={k:o.k,t:H2.dur};S.helpers++;S.texts.push({txt:HELP_LINE[o.k],t:2,max:2});$('helpTag').textContent=H2.n;$('helpTag').style.color=H2.col;S.banner={txt:H2.n,t:1.6};S.joy=1.5;Sound.play('form');
         const p=proj(S.x,.6,S.z);if(p)for(let i=0;i<3;i++)S.rings.push({x:p.x,y:p.y,r:12,R:80+i*50,life:.6+i*.12,max:.6+i*.12,col:H2.col,w:4-i})}}}}
-  S.objs=S.objs.filter(o=>!o.gone&&o.z>S.z-6);
+  S.objs=S.objs.filter(o=>!o.gone&&o.z>S.z-6);S.dim=Math.max(0,S.dim-dt*.8);
+  S.missT=(S.missT||0)-dt;if(S.missT<=0){S.missT=1;missionCheck()}
   // forms by distance
   while(S.tier<5&&S.z>=FORM_AT[S.tier+1]){S.tier++;S.banner={txt:'you became '+FORMS[S.tier],t:2.2};S.joy=2;Sound.play('form')}
   for(let i=S.fx.length-1;i>=0;i--){const f=S.fx[i];f.life-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=Math.exp(-dt*3);f.vy*=Math.exp(-dt*3);if(f.life<=0)S.fx.splice(i,1)}
@@ -480,7 +524,7 @@ function update(dt){
 /* ---------------- drawing ---------------- */
 function drawBg(){const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#101119');g.addColorStop(clamp(HY/H,0,1),'#1c1b2a');g.addColorStop(1,'#14141d');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
   // the light you run toward
-  const lx=W/2-S.camX*F/ZMAX;drawGlow('#ffd98a',lx,HY,Math.min(W,H)*.55,.35+.05*Math.sin(S.t*.8));drawGlow('#fff3d6',lx,HY,Math.min(W,H)*.14,.6);
+  const lx=W/2-S.camX*F/ZMAX,zc=ZONES[S.zone%ZONES.length][0];drawGlow(zc,lx,HY,Math.min(W,H)*.55,.35+.05*Math.sin(S.t*.8));drawGlow('#fff3d6',lx,HY,Math.min(W,H)*.14,.6);
   // drifting specks in the dark
   ctx.fillStyle='rgba(255,255,255,.06)';for(let i=0;i<26;i++){const x=((i*173.3+S.t*(6+i%5)*3)%(W+40))-20,y=((i*91.7)%(HY*.95));ctx.fillRect(x,y,2,2)}}
 function drawFloor(){const z0=Math.floor(S.z/3)*3;
@@ -504,11 +548,16 @@ function drawShadowOb(o){const T=OB[o.type],d=o.z-S.z,a=o.type==='denial'?clamp(
     ctx.strokeStyle=hexA(T.col,.6);ctx.lineWidth=Math.max(1,p.k*.03);for(let i=0;i<o.span*3;i++){const cx=p.x-w/2+w*(i+.5)/(o.span*3),cy=proj(o.x,.15,o.z).y;ctx.beginPath();ctx.ellipse(cx,cy,p.k*.12,p.k*.07,0,0,TAU);ctx.stroke()}
     ctx.globalAlpha=1;return}
   if(o.type==='doubt'){for(const dx of [-.55,0,.55]){const q=proj(o.x+dx,.38,o.z);if(q)drawBody(T,q.x,q.y,T.r*q.k,o.ph+dx*3)}ctx.globalAlpha=1;return}
+  if(o.type==='overwhelm'){const w=o.span;for(let i=0;i<(o.grown?5:2);i++){const q=proj(o.x+(i-2)*.45*w,.6+((i*37)%5)*.12,o.z);if(q)drawBody(T,q.x,q.y,T.r*q.k*(o.grown?.75:.9),o.ph+i)}ctx.globalAlpha=1;return}
+  if(o.type==='shame'){const sc=1-.55*(o.shrink||0),q=proj(o.x,Math.max(.4,o.hi*.5),o.z);if(q)drawBody(T,q.x,q.y,T.r*q.k*sc,o.ph);ctx.globalAlpha=1;return}
+  if(o.type==='burnout'){const fh=p.k*(.5+.25*Math.abs(Math.sin(S.t*12+o.ph)));ctx.fillStyle=hexA('#ffd08a',.85);ctx.beginPath();ctx.moveTo(p.x-p.k*.2,p.y-T.r*p.k*.8);ctx.quadraticCurveTo(p.x,p.y-T.r*p.k*.8-fh*1.4,p.x+p.k*.2,p.y-T.r*p.k*.8);ctx.fill()}
   const r=T.r*p.k;drawBody(T,p.x,p.y,r,o.ph,o.type==='procrastination'&&o.sleep?'shut':o.type==='procrastination'?'angry':null);
   if(o.type==='depression'){ctx.strokeStyle=hexA('#8fb0e8',.6*a);ctx.lineWidth=Math.max(1,p.k*.03);for(let i=0;i<5;i++){const q=(S.t*1.4+i*.2+o.ph)%1,x=p.x+(i-2)*r*.4,y=p.y+r*.9+q*(proj(o.x,0,o.z).y-p.y-r*.9);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-1,y+p.k*.18);ctx.stroke()}}
   if(o.type==='procrastination'&&o.sleep){ctx.fillStyle=hexA(T.col,.8);ctx.font='700 '+Math.round(r*.7)+'px '+FONT;ctx.textAlign='center';for(let i=0;i<3;i++){const q=(S.t*.5+i/3)%1;ctx.globalAlpha=a*(1-q);ctx.fillText('z',p.x+r*.8+q*r*.9,p.y-r*.6-q*r*1.6)}}
   if(o.type==='anger'){for(let i=0;i<3;i++){const x=p.x+(i-1)*r*.45,h=r*(.5+.35*Math.abs(Math.sin(S.t*11+i*2)));ctx.fillStyle=hexA(i===1?'#ffb08a':T.col,.75);ctx.beginPath();ctx.moveTo(x-r*.2,p.y-r*.55);ctx.quadraticCurveTo(x,p.y-r*.55-h,x+r*.2,p.y-r*.55);ctx.fill()}}
   ctx.globalAlpha=1}
+function drawPud(o){const p=proj(o.x,0,o.z);if(!p)return;const a=clamp(1-(o.z-S.z-60)/50,0,1);ctx.globalAlpha=a*.8;ctx.fillStyle='rgba(120,100,70,.5)';ctx.strokeStyle='rgba(184,162,122,.6)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(p.x,p.y,p.k*.8,p.k*.22,0,0,TAU);ctx.fill();ctx.stroke();ctx.globalAlpha=1}
 function drawBody(T,x,y,r,ph,eyes){drawGlow(T.col,x,y,r*2.6,.5);ctx.save();ctx.translate(x,y);ctx.fillStyle='#0b0a12';ctx.strokeStyle=T.col;ctx.lineWidth=Math.max(1.5,r*.12);ctx.lineJoin='round';
   bodyPath(ctx,T.shape,r,S.t,ph);ctx.fill();ctx.stroke();drawEyes(eyes||T.eyes,r,T.col,0,.6,S.t+ph);ctx.restore()}
 function drawGiftAt(x,y,r){drawGlow('#ffd98a',x,y,r*4,.7);const g=ctx.createRadialGradient(x-r*.3,y-r*.3,1,x,y,r);g.addColorStop(0,'#fffcf2');g.addColorStop(.6,'#ffd98a');g.addColorStop(1,'#e8a44a');
@@ -545,13 +594,17 @@ function render(){ctx.setTransform(DPR,0,0,DPR,0,0);
   const sh=S.shake*8;ctx.save();ctx.translate(rnd(-sh,sh),rnd(-sh,sh));
   drawBg();drawFloor();
   const list=S.objs.slice().sort((a,b)=>b.z-a.z);
-  for(const o of list){if(o.z<S.z-.5)continue;if(o.kind==='ob')drawShadowOb(o);else if(o.kind==='mote')drawMote(o);else drawHelp(o)}
+  for(const o of list){if(o.z<S.z-.5)continue;if(o.kind==='ob')drawShadowOb(o);else if(o.kind==='mote')drawMote(o);else if(o.kind==='pud')drawPud(o);else drawHelp(o)}
   drawWisp();
   // things slightly behind you, drawn over the wisp so they pass the camera
   for(const o of list){if(o.z>=S.z-.5)continue;if(o.kind==='ob')drawShadowOb(o)}
   for(const f of S.fx){const k=Math.max(0,f.life/f.max);ctx.globalAlpha=k;ctx.fillStyle=f.col;ctx.beginPath();ctx.arc(f.x,f.y,f.r*(.4+.6*k),0,TAU);ctx.fill()}ctx.globalAlpha=1;
   for(const r of S.rings){const k=1-r.life/r.max,e=1-Math.pow(1-k,3);ctx.globalAlpha=(1-k)*.8;ctx.strokeStyle=r.col;ctx.lineWidth=r.w*(1-k*.6);ctx.beginPath();ctx.arc(r.x,r.y,Math.max(0,lerp(r.r,r.R,e)),0,TAU);ctx.stroke()}ctx.globalAlpha=1;
   ctx.restore();
+  // speed lines streaming out from the light
+  if(S.v>15){const a=clamp((S.v-15)/15,0,1)*.16,vx=W/2-S.camX*F/ZMAX;ctx.strokeStyle='rgba(255,255,255,'+a+')';ctx.lineWidth=1.5;ctx.lineCap='round';
+    for(let i=0;i<22;i++){const ang=i*2.39996,q=((S.t*S.v*.06+i*.137)%1),r0=Math.max(W,H)*(.12+q*.9),r1=r0+30+S.v*2.2;const cx=Math.cos(ang),cy=Math.sin(ang);ctx.beginPath();ctx.moveTo(vx+cx*r0,HY+cy*r0);ctx.lineTo(vx+cx*r1,HY+cy*r1);ctx.stroke()}}
+  if(S.dim>0){ctx.fillStyle='rgba(4,4,10,'+S.dim+')';ctx.fillRect(0,0,W,H)}
   if(S.help&&S.help.k==='meditation'){ctx.fillStyle='rgba(110,150,210,.1)';ctx.fillRect(0,0,W,H)}
   if(!vig){const c=document.createElement('canvas');c.width=200;c.height=Math.max(60,Math.round(200*H/W));const g=c.getContext('2d'),gr=g.createRadialGradient(100,c.height/2,Math.min(200,c.height)*.3,100,c.height/2,Math.max(200,c.height)*.75);gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,.55)');g.fillStyle=gr;g.fillRect(0,0,200,c.height);vig=c}
   ctx.drawImage(vig,0,0,W,H);
@@ -581,26 +634,62 @@ const CONT_MSG={closed:'the ad was closed early, so no continue this time',unava
 function askContinue(){const b=$('contBtn');b.disabled=true;$('contMsg').textContent='';
   Ads.show(r=>{b.disabled=false;if(r==='rewarded'){b.hidden=true;revive()}else $('contMsg').textContent=CONT_MSG[r]||CONT_MSG.unavailable})}
 /* ---------------- hud & flow ---------------- */
-function renderHearts(){$('hearts').innerHTML=[0,1,2].map(i=>'<i'+(i<S.hearts?'':' class="off"')+'></i>').join('')}
-function updateHud(){$('dist').textContent=Math.floor(S.z)+' m';$('light').textContent='✦ '+S.light;
+function renderHearts(){$('hearts').innerHTML=Array.from({length:S.maxHearts},(_,i)=>i).map(i=>'<i'+(i<S.hearts?'':' class="off"')+'></i>').join('')}
+function updateHud(){$('dist').textContent=Math.floor(S.z)+' m';$('light').textContent='✦ '+S.light+(S.mult>1?'  ×'+S.mult:'');
   const vis={};for(const o of S.objs)if(o.kind==='ob'&&o.z-S.z<60){const k=o.type==='guilt'?'guilt':o.type;vis[k]=(vis[k]||0)+1}
   const top=Object.entries(vis).sort((a,b)=>b[1]-a[1]).slice(0,3),o={};for(const [k,n] of top)o[k]=Math.min(1,.4+n/4);Sound.setPresence(o);
   Sound.setMode('battle',S.quiet>0||S.t<15?1:S.t<50?2:3)}
 const bestKey='drift.best',boardKey='drift.board';
+const MISSIONS=[
+  {id:'run1k',d:'run 1000 m in one run',v:()=>S.z,goal:1000,r:50},
+  {id:'light100',d:'gather 100 light in one run',v:()=>S.light,goal:100,r:50},
+  {id:'near5',d:'pass 5 shadows closely in one run',v:()=>S.near,goal:5,r:50},
+  {id:'mult3',d:'reach a ×3 light streak',v:()=>S.maxMult,goal:3,r:60},
+  {id:'float10',d:'float over 10 shadows in one run',v:()=>S.floats,goal:10,r:60},
+  {id:'help2',d:'use 2 helpers in one run',v:()=>S.helpers,goal:2,r:60},
+  {id:'run2500',d:'run 2500 m in one run',v:()=>S.z,goal:2500,r:100},
+  {id:'sink6',d:'sink under 6 shadows in one run',v:()=>S.sinks,goal:6,r:80},
+  {id:'glow',d:'become glow',v:()=>S.tier,goal:3,r:80},
+  {id:'light250',d:'gather 250 light in one run',v:()=>S.light,goal:250,r:120},
+  {id:'near15',d:'pass 15 shadows closely in one run',v:()=>S.near,goal:15,r:120},
+  {id:'mult3b',d:'keep a ×3 light streak going for 60 light',v:()=>S.streak,goal:60,r:150},
+  {id:'run4500',d:'run 4500 m in one run',v:()=>S.z,goal:4500,r:200},
+  {id:'dawn',d:'become dawn',v:()=>S.tier,goal:5,r:250}];
+function mstate(){try{const m=JSON.parse(store.get('drift.missions')||'null');if(m&&Array.isArray(m.done))return m}catch(e){}return {done:[]}}
+function activeMissions(){const m=mstate();return MISSIONS.filter(x=>!m.done.includes(x.id)).slice(0,3)}
+// the goals you start a run with are the ones this run can complete
+function runMissions(){return (S.goalIds||[]).map(id=>MISSIONS.find(x=>x.id===id)).filter(M=>M&&!mstate().done.includes(M.id))}
+function missionCheck(){if(!S)return;for(const M of runMissions()){if(M.v()>=M.goal){const m=mstate();m.done.push(M.id);store.set('drift.missions',JSON.stringify(m));
+  store.set('drift.light',lightTotal()+M.r);S.missionsDone.push(M);S.banner={txt:'goal reached',t:1.8};S.texts.push({txt:M.d+' · +'+M.r+' ✦',t:2.4,max:2.4});Sound.play('win')}}}
+const BOONS=[
+  {at:1000,n:'a gentle start',d:'begin each run with faith for a few seconds'},
+  {at:3000,n:'a fourth light',d:'start with 4 hearts'},
+  {at:7000,n:'a friend nearby',d:'begin each run with a friend'},
+  {at:12000,n:'quick to heal',d:'a heart comes back every 70 light'}];
+const lightTotal=()=>+(store.get('drift.light')||0);
+function applyBoons(){S.goalIds=activeMissions().map(M=>M.id);const t=lightTotal();if(t>=3000)S.maxHearts=S.hearts=4;if(t>=12000)S.heartEvery=70,S.nextHeart=70;
+  const k=t>=7000?'friend':t>=1000?'faith':null;if(k){S.help={k,t:k==='faith'?4:HELP[k].dur};setTimeout(()=>{if(S&&S.help){$('helpTag').textContent=HELP[S.help.k].n;$('helpTag').style.color=HELP[S.help.k].col}},0)}}
+function metaHTML(add){const tot=lightTotal(),next=BOONS.find(b=>b.at>tot),got=BOONS.filter(b=>b.at<=tot);
+  let h='<div class="meta2"><div><b>✦ '+tot+'</b> light gathered across all runs'+(add?' <span>(+'+add+' this run)</span>':'')+'</div>';
+  if(next){const prev=[...BOONS].reverse().find(b=>b.at<=tot),lo=prev?prev.at:0;h+='<div class="lbBar"><i style="width:'+((tot-lo)/(next.at-lo)*100).toFixed(1)+'%"></i></div><div class="sm">next at ✦ '+next.at+': <b>'+next.n+'</b> · '+next.d+'</div>'}
+  if(got.length)h+='<div class="lbGot">'+got.map(b=>'<span title="'+b.d+'">'+b.n+'</span>').join('')+'</div>';
+  const act=activeMissions();if(act.length)h+='<div class="bh">goals</div><ul class="goals">'+act.map(M=>'<li><span>'+M.d+'</span><b>+'+M.r+' ✦</b></li>').join('')+'</ul>';
+  return h+'</div>'}
 function boardLoad(){try{const L=JSON.parse(store.get(boardKey)||'[]');return Array.isArray(L)?L:[]}catch(e){return []}}
 function boardSave(e){const L=boardLoad().filter(x=>x.id!==e.id);L.push(e);L.sort((a,b)=>b.s-a.s);const top=L.slice(0,10);store.set(boardKey,JSON.stringify(top));return top}
 const dstr=d=>{try{return new Date(d).toLocaleDateString(undefined,{day:'numeric',month:'short'})}catch(e){return ''}};
 function boardHTML(L,id,n){if(!L.length)return '';return '<div class="bh">best runs</div><ol class="board">'+L.slice(0,n).map((x,i)=>'<li'+(x.id===id?' class="me"':'')+'><span>'+(i+1)+'</span><b>'+x.s+' m</b><i>'+x.f+'</i><em>'+dstr(x.d)+'</em></li>').join('')+'</ol>'}
 function start(){Sound.init();newGame();Ads.preload();for(const id of ['menu','over','pause'])$(id).hidden=true;$('hud').hidden=false;$('helpTag').textContent='';renderHearts();last=performance.now();updateHud()}
-function revive(){S.continued=true;S.hearts=1;renderHearts();S.inv=2.5;S.state='play';$('over').hidden=true;
+function revive(){S.continued=true;S.hearts=1;S.streak=0;S.mult=1;renderHearts();S.inv=2.5;S.state='play';$('over').hidden=true;
   for(const o of S.objs)if(o.kind==='ob'&&o.z<S.z+38)o.gone=true;S.v*=.8;S.banner={txt:'one more breath',t:2};S.joy=1.5;Sound.play('form');Sound.setMode('battle',2);last=performance.now()}
 function gameOver(){if(S.state==='over')return;S.state='over';$('contBtn').hidden=!(Ads.on()&&!S.continued);$('contMsg').textContent='';Sound.play('lose');Sound.setMode('menu',0);Sound.setPresence({});
-  const d=Math.floor(S.z),best=+(store.get(bestKey)||0),nb=d>best;if(nb)store.set(bestKey,d);
+  missionCheck();const d=Math.floor(S.z),best=+(store.get(bestKey)||0),nb=d>best;if(nb)store.set(bestKey,d);
+  const addL=S.light-(S.lightSaved||0);if(addL>0){store.set('drift.light',lightTotal()+addL);S.lightSaved=S.light}
   const id=S.boardId||(S.boardId=Date.now()+'-'+Math.random().toString(36).slice(2,6)),L=boardSave({id,s:d,f:FORMS[S.tier],l:S.light,d:Date.now()}),rank=L.findIndex(x=>x.id===id);
   setTimeout(()=>{$('oTitle').textContent=pick(OVER);$('oLine').textContent='you ran '+d+' m and gathered '+S.light+' light. you reached '+FORMS[S.tier]+'.';
-    $('oBest').textContent=nb?'your longest run':rank>=0?'#'+(rank+1)+' of your best runs':'longest: '+Math.max(best,d)+' m';$('overBoard').innerHTML=boardHTML(L,id,10);$('over').hidden=false},700)}
+    $('oBest').textContent=nb?'your longest run':rank>=0?'#'+(rank+1)+' of your best runs':'longest: '+Math.max(best,d)+' m';$('overBoard').innerHTML=(S.missionsDone.length?'<div class="sm gold">goals reached: '+S.missionsDone.map(M=>M.d).join(' · ')+'</div>':'')+metaHTML(S.light)+boardHTML(L,id,10);$('over').hidden=false},700)}
 function toMenu(){S=null;Sound.setMode('menu',0);Sound.setPresence({});Sound.setPaused(false);for(const id of ['over','pause','hud'])$(id).hidden=true;$('menu').hidden=false;menuInfo()}
-function menuInfo(){$('menuBoard').innerHTML=boardHTML(boardLoad(),null,5)}
+function menuInfo(){$('menuBoard').innerHTML=metaHTML(0)+boardHTML(boardLoad(),null,5)}
 function togglePause(){if(!S)return;if(S.state==='play'){S.state='paused';$('pause').hidden=false}else if(S.state==='paused'){S.state='play';$('pause').hidden=true;last=performance.now()}Sound.setPaused(S.state==='paused')}
 function syncToggles(){for(const [k,ids] of [['music',['musicTog','musicTog2']],['sfx',['sfxTog','sfxTog2']]])for(const id of ids)$(id).classList.toggle('off',!Sound.opts[k])}
 for(const [id,k] of [['musicTog','music'],['musicTog2','music'],['sfxTog','sfx'],['sfxTog2','sfx']])$(id).onclick=()=>{Sound.init();Sound.toggle(k);syncToggles()};
@@ -629,7 +718,7 @@ function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,Math.max(0,
   try{if(S&&S.state==='play'){update(dt);hudT-=dt;if(hudT<=0){hudT=.1;updateHud()}}}catch(e){console.error(e)}
   try{render()}catch(e){console.error(e)}}
 requestAnimationFrame(loop);
-if(/[?&]debug\b/.test(location.search))window.DR={get S(){return S},start,update,render,moveLane,jump,slide,Sound,boardLoad};
+if(/[?&]debug\b/.test(location.search))window.DR={get S(){return S},start,update,render,moveLane,jump,slide,Sound,boardLoad,missionCheck};
 })();
 </script>
 </body>
