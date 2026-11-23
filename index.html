@@ -96,7 +96,7 @@ h2{font-size:30px;font-weight:700;margin:0 0 8px}
     </div>
     <button class="btn" id="playBtn">run</button>
     <div id="menuBoard"></div>
-    <div style="margin-top:12px"><button class="tog" id="musicTog">music</button><button class="tog" id="sfxTog">sound</button></div>
+    <div style="margin-top:12px"><button class="tog" id="musicTog">music</button><button class="tog" id="sfxTog">sound</button><button class="tog" id="vibTog">vibration</button><button class="tog" id="shakeTog">shake</button></div>
     <div class="ios" id="iosTip" hidden>on iPhone: tap share, then "add to home screen" to play full screen</div>
     <div style="margin-top:10px;font-size:12.5px"><a href="https://silverman91.github.io/drift/privacy.html" target="_blank" rel="noopener" style="color:var(--muted)">privacy policy</a></div>
   </div>
@@ -107,7 +107,7 @@ h2{font-size:30px;font-weight:700;margin:0 0 8px}
     <h2>paused</h2>
     <div class="sub">take a breath.</div>
     <button class="btn" id="resumeBtn">resume</button>
-    <div style="margin-top:8px"><button class="tog" id="musicTog2">music</button><button class="tog" id="sfxTog2">sound</button></div>
+    <div style="margin-top:8px"><button class="tog" id="musicTog2">music</button><button class="tog" id="sfxTog2">sound</button><button class="tog" id="vibTog2">vibration</button><button class="tog" id="shakeTog2">shake</button></div>
     <button class="btn ghost" id="quitBtn">menu</button>
   </div>
 </div>
@@ -425,11 +425,17 @@ const OVER=['that\'s okay. rest.','some days are like this','breathe. try again.
 function newGame(){S={state:'play',t:0,z:0,v:12,x:0,lane:0,y:0,vy:0,slide:0,hearts:3,inv:0,breath:60,light:0,tier:1,
   objs:[],nextRow:30,fx:[],rings:[],texts:[],banner:{txt:'run toward the light',t:2.4},thought:null,shake:0,
   help:null,helpT:0,nextHelp:rnd(30,45),quiet:0,nextQuiet:55,camX:0,ph:0,word:null,wordT:0,exCd:0,joy:0,p:{still:0},
-  streak:0,streakT:0,mult:1,maxMult:1,near:0,floats:0,sinks:0,helpers:0,nextHeart:100,zone:0,maxHearts:3,dim:0,missionsDone:[]};applyBoons()}
+  firstRun:!boardLoad().length,streak:0,streakT:0,mult:1,maxMult:1,near:0,floats:0,sinks:0,helpers:0,nextHeart:100,zone:0,maxHearts:3,dim:0,missionsDone:[]};applyBoons()}
 const proj=(x,y,z)=>{const dz=z-S.z+CAM_BACK;if(dz<.4)return null;const k=F/dz;return {x:W/2+(x-S.camX)*k,y:HY+(CAM_H-y)*k,k}};
 const laneX=l=>l*LANE;
 function introCheck(){for(const [k,t] of NEWAT)if(S.t>=t&&!S['in_'+k]){S['in_'+k]=true;S.texts.push({txt:'new: '+k,t:1.6,max:1.6})}}
-function unlocked(){return Object.keys(OB).filter(k=>S.t>=UNLOCK[k])}
+// the first few times you meet a cloud or something low, say what to do (shown 3 times per device)
+function tipCheck(){if(S.tipDone)return;let tips;try{tips=JSON.parse(store.get('drift.tips')||'{}')}catch(e){tips={}}
+  for(const o of S.objs){if(o.kind!=='ob'||o.gone)continue;const d=o.z-S.z;if(d<8||d>32||Math.abs(o.x-S.x)>LANE*.6)continue;
+    const k=o.lo>=.5?'sink':o.hi<=1.25&&!(o.type==='impostor'&&o.disg)?'float':null;if(!k||(tips[k]||0)>=3||S['tip_'+k])continue;
+    S['tip_'+k]=true;tips[k]=(tips[k]||0)+1;store.set('drift.tips',JSON.stringify(tips));
+    S.banner={txt:k==='sink'?'swipe down to sink under':'swipe up to float over',t:2};return}}
+function unlocked(){const f=S.firstRun?1.5:1;return Object.keys(OB).filter(k=>S.t>=UNLOCK[k]*f)}
 function spawnRow(z){
   if(S.quiet>0){motesLine(pick([-1,0,1]),z,6);return}
   const ks=unlocked(),r=Math.random(),rowLanes=[-1,0,1];
@@ -452,7 +458,7 @@ function slide(){if(!S||S.state!=='play')return;if(S.y>.05)S.vy=-14;S.slide=.65;
 function gainLight(){S.streak++;S.streakT=0;S.mult=1+Math.min(2,Math.floor(S.streak/15));S.maxMult=Math.max(S.maxMult,S.mult);
   const g=S.mult*(S.help&&S.help.k==='journal'?2:1);S.light+=g;if(S.mult>1&&S.streak%15===0){S.texts.push({txt:'light ×'+S.mult,t:1.2,max:1.2});Sound.play('pickup')}
   while(S.light>=S.nextHeart){S.nextHeart+=S.heartEvery||100;if(S.hearts<S.maxHearts){S.hearts++;renderHearts();S.texts.push({txt:'a little lighter',t:1.4,max:1.4})}}}
-function nearMiss(){if(S.inv>0)return;S.near++;S.light+=2;S.streakT=0;S.texts.push({txt:'close',t:.9,max:.9});Sound.play('tink',12);
+function nearMiss(){if(S.inv>0)return;S.near++;buzz(12);S.light+=2;S.streakT=0;S.texts.push({txt:'close',t:.9,max:.9});Sound.play('tink',12);
   const p=proj(S.x,.6,S.z);if(p)S.rings.push({x:p.x,y:p.y,r:p.k*.4,R:p.k*1.2,life:.3,max:.3,col:'#fff3d6',w:2})}
 // self-reflection: you dodge on your own
 function autopilot(){const look=Math.max(7,S.v*.55),danger=l=>{let w=null;for(const o of S.objs){if(o.kind!=='ob'||o.gone)continue;const d=o.z-S.z;if(d<0||d>look)continue;
@@ -464,13 +470,13 @@ function hit(o){if(S.inv>0)return;const T=OB[o.type];
   if(S.help&&S.help.k==='faith'){o.gone=true;const p=proj(o.x,1,o.z);if(p)burst(p.x,p.y,T.col,12);Sound.play('pickup');return}
   S.streak=0;S.mult=1;
   if(T.soft){S.light=Math.max(0,S.light-15);S.inv=1;S.word={txt:T.word,col:T.col,t:1.5};S.texts.push({txt:'you carry a little of it',t:1.6,max:1.6});o.gone=true;Sound.play('whisper');return}
-  S.hearts--;S.inv=1.6;S.v*=.75;S.shake=.5;Sound.play('hurt');S.word={txt:T.word,col:T.col,t:1.5};o.gone=true;
+  S.hearts--;S.inv=1.6;S.v*=.75;S.shake=.5;Sound.play('hurt');buzz(S.hearts<=1?[50,40,50]:45);S.word={txt:T.word,col:T.col,t:1.5};o.gone=true;
   const p=proj(S.x,.6,S.z);if(p){burst(p.x,p.y,T.col,16);S.rings.push({x:p.x,y:p.y,r:10,R:90,life:.35,max:.35,col:'#f08a7a',w:4})}
   renderHearts();if(S.hearts<=0)gameOver()}
 function update(dt){
   S.t+=dt;S.ph+=dt;const slow=S.help&&S.help.k==='meditation'?.5:1;
   // pace: speeds up over time, eases during quiet moments
-  const target=Math.min(30,11+S.t*.12)*(S.quiet>0?.8:1);S.v=lerp(S.v,target,1-Math.exp(-dt*.6));
+  const target=Math.min(30,11+S.t*.12)*(S.firstRun&&S.t<90?.9:1)*(S.quiet>0?.8:1);S.v=lerp(S.v,target,1-Math.exp(-dt*.6));
   const dz=S.v*dt*slow;S.z+=dz;
   // quiet moments
   if(S.quiet>0){S.quiet-=dt;if(S.quiet<=0)S.banner={txt:'here they come again',t:1.8}}
@@ -479,7 +485,7 @@ function update(dt){
   S.streakT+=dt;if(S.streakT>2.4&&S.streak>0){S.streak=0;S.mult=1}
   // a new colour of light every 1000 m
   {const zn=Math.floor(S.z/1000);if(zn!==S.zone){S.zone=zn;const Z2=ZONES[zn%ZONES.length];S.banner={txt:'the light turns '+Z2[1],t:2.2};Sound.play('bell');missionCheck()}}
-  introCheck();if(S.help&&S.help.k==='reflection')autopilot();
+  introCheck();tipCheck();if(S.help&&S.help.k==='reflection')autopilot();
   // rows ahead
   while(S.nextRow<S.z+ZMAX){spawnRow(S.nextRow);S.nextRow+=Math.max(15,25-S.t*.04)*(S.quiet>0?.7:1)}
   // player
@@ -512,7 +518,7 @@ function update(dt){
   S.objs=S.objs.filter(o=>!o.gone&&o.z>S.z-6);S.dim=Math.max(0,S.dim-dt*.8);
   S.missT=(S.missT||0)-dt;if(S.missT<=0){S.missT=1;missionCheck()}
   // forms by distance
-  while(S.tier<5&&S.z>=FORM_AT[S.tier+1]){S.tier++;S.banner={txt:'you became '+FORMS[S.tier],t:2.2};S.joy=2;Sound.play('form')}
+  while(S.tier<5&&S.z>=FORM_AT[S.tier+1]){S.tier++;S.banner={txt:'you became '+FORMS[S.tier],t:2.2};S.joy=2;Sound.play('form');buzz([30,50,60])}
   for(let i=S.fx.length-1;i>=0;i--){const f=S.fx[i];f.life-=dt;f.x+=f.vx*dt;f.y+=f.vy*dt;f.vx*=Math.exp(-dt*3);f.vy*=Math.exp(-dt*3);if(f.life<=0)S.fx.splice(i,1)}
   if(S.fx.length>(LITE?220:500))S.fx.splice(0,S.fx.length-(LITE?220:500));
   for(let i=S.rings.length-1;i>=0;i--){S.rings[i].life-=dt;if(S.rings[i].life<=0)S.rings.splice(i,1)}
@@ -539,7 +545,7 @@ function drawFloor(){const z0=Math.floor(S.z/3)*3;
   const z1=Math.floor(S.z/12)*12;for(let z=z1+12;z<S.z+ZMAX;z+=12)for(const sd of [-1,1]){const p=proj(sd*(LANE*1.5+1.6),1.6,z);if(!p)continue;const a=clamp(1-(z-S.z)/ZMAX,0,1);
     drawGlow(sd<0?'#8ec9ee':'#c9a6f0',p.x,p.y,p.k*1.3,.35*a);ctx.fillStyle='rgba(255,255,255,'+(.5*a)+')';ctx.beginPath();ctx.arc(p.x,p.y,Math.max(1,p.k*.07),0,TAU);ctx.fill()}}
 function drawShadowOb(o){const T=OB[o.type],d=o.z-S.z,a=o.type==='denial'?clamp(1-(d-8)/14,0,1):clamp(1-(d-60)/50,0,1);if(a<=.01)return;
-  const midY=o.type==='depression'?1.7:o.type==='procrastination'?(o.sleep?.3:.3+((o.rise||0)*.9)):Math.min(o.hi,2)*.5,p=proj(o.x,midY,o.z);if(!p)return;
+  const midY=o.type==='depression'?2.05:o.type==='procrastination'?(o.sleep?.3:.3+((o.rise||0)*.9)):Math.min(o.hi,2)*.5,p=proj(o.x,midY,o.z);if(!p)return;
   ctx.globalAlpha=a;
   if(o.type==='impostor'&&o.disg){drawGiftAt(p.x,p.y,p.k*.5);ctx.globalAlpha=1;return}
   if(o.type==='guilt'){const w=o.span*LANE*.92*p.k,h=Math.min(o.hi,2.4)*p.k,top=proj(o.x,Math.min(o.hi,2.4),o.z);
@@ -551,11 +557,29 @@ function drawShadowOb(o){const T=OB[o.type],d=o.z-S.z,a=o.type==='denial'?clamp(
   if(o.type==='overwhelm'){const w=o.span;for(let i=0;i<(o.grown?5:2);i++){const q=proj(o.x+(i-2)*.45*w,.6+((i*37)%5)*.12,o.z);if(q)drawBody(T,q.x,q.y,T.r*q.k*(o.grown?.75:.9),o.ph+i)}ctx.globalAlpha=1;return}
   if(o.type==='shame'){const sc=1-.55*(o.shrink||0),q=proj(o.x,Math.max(.4,o.hi*.5),o.z);if(q)drawBody(T,q.x,q.y,T.r*q.k*sc,o.ph);ctx.globalAlpha=1;return}
   if(o.type==='burnout'){const fh=p.k*(.5+.25*Math.abs(Math.sin(S.t*12+o.ph)));ctx.fillStyle=hexA('#ffd08a',.85);ctx.beginPath();ctx.moveTo(p.x-p.k*.2,p.y-T.r*p.k*.8);ctx.quadraticCurveTo(p.x,p.y-T.r*p.k*.8-fh*1.4,p.x+p.k*.2,p.y-T.r*p.k*.8);ctx.fill()}
-  const r=T.r*p.k;drawBody(T,p.x,p.y,r,o.ph,o.type==='procrastination'&&o.sleep?'shut':o.type==='procrastination'?'angry':null);
-  if(o.type==='depression'){ctx.strokeStyle=hexA('#8fb0e8',.6*a);ctx.lineWidth=Math.max(1,p.k*.03);for(let i=0;i<5;i++){const q=(S.t*1.4+i*.2+o.ph)%1,x=p.x+(i-2)*r*.4,y=p.y+r*.9+q*(proj(o.x,0,o.z).y-p.y-r*.9);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-1,y+p.k*.18);ctx.stroke()}}
+  const r=T.r*p.k;
+  if(o.type==='depression'){// a wide, heavy rain cloud hanging above the lane
+    const cw=LANE*.46*p.k,bob=Math.sin(S.t*1.3+o.ph)*p.k*.05;drawGlow(T.col,p.x,p.y+bob,cw*2.2,.45);ctx.fillStyle='#0b0a12';ctx.strokeStyle=T.col;ctx.lineWidth=Math.max(1.5,p.k*.05);
+    const puffs=[[-.72,.08,.42],[-.3,-.18,.55],[.2,-.22,.58],[.66,.04,.44],[0,.12,.5]];ctx.beginPath();for(const [px,py,pr] of puffs){ctx.moveTo(p.x+px*cw+pr*cw,p.y+bob+py*cw);ctx.arc(p.x+px*cw,p.y+bob+py*cw,pr*cw,0,TAU)}ctx.fill();
+    for(const [px,py,pr] of puffs){ctx.beginPath();ctx.arc(p.x+px*cw,p.y+bob+py*cw,pr*cw,Math.PI*.95,Math.PI*2.05);ctx.stroke()}
+    ctx.beginPath();ctx.moveTo(p.x-cw*1.1,p.y+bob+cw*.42);ctx.lineTo(p.x+cw*1.05,p.y+bob+cw*.42);ctx.stroke();
+    ctx.save();ctx.translate(p.x,p.y+bob);drawEyes('down',cw*.55,T.col,0,.6,S.t+o.ph);ctx.restore()}
+  else drawBody(T,p.x,p.y,r,o.ph,o.type==='procrastination'&&o.sleep?'shut':o.type==='procrastination'?'angry':null);
+  if(o.type==='depression'){
+    // short rain that stops well above the ground, so the space underneath reads as open
+    const yb=proj(o.x,1.05,o.z).y,cwb=LANE*.46*p.k;ctx.strokeStyle=hexA('#8fb0e8',.55*a);ctx.lineWidth=Math.max(1,p.k*.03);
+    for(let i=0;i<5;i++){const q=(S.t*1.4+i*.2+o.ph)%1,x=p.x+(i-2)*cwb*.4,y0=p.y+cwb*.5,y=y0+q*(yb-y0);ctx.globalAlpha=a*(1-q*.8);ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x-1,y+p.k*.14);ctx.stroke()}ctx.globalAlpha=a;
+    // the way under: a lit gap on the floor with arrows pointing down
+    const g0=proj(o.x,0,o.z),hw=LANE*.42*g0.k,gl=ctx.createLinearGradient(0,yb,0,g0.y);gl.addColorStop(0,'rgba(142,201,238,0)');gl.addColorStop(1,'rgba(142,201,238,'+(.22*a)+')');
+    ctx.fillStyle=gl;ctx.fillRect(g0.x-hw,yb,hw*2,g0.y-yb);ctx.fillStyle='rgba(0,0,0,'+(.3*a)+')';ctx.beginPath();ctx.ellipse(g0.x,g0.y,hw*.9,g0.k*.12,0,0,TAU);ctx.fill();
+    if(d<50)for(let i=0;i<2;i++){const q=(S.t*1.6+i*.5)%1,cy=lerp(yb,g0.y,.25+.5*q);chev(g0.x,cy,g0.k*.3,1,a*.8*(1-Math.abs(q-.5)*1.4),'#bfe3f7')}}
+  // things you can float over get a soft arrow pointing up
+  if(o.hi<=1.25&&o.lo===0&&!(o.type==='impostor'&&o.disg)&&d<45&&d>2){const up=proj(o.x,o.hi+.55,o.z);if(up){const q=(S.t*1.6+o.ph)%1;chev(up.x,up.y-q*up.k*.25,up.k*.2,-1,a*.7*(1-q),'#fff3d6')}}
   if(o.type==='procrastination'&&o.sleep){ctx.fillStyle=hexA(T.col,.8);ctx.font='700 '+Math.round(r*.7)+'px '+FONT;ctx.textAlign='center';for(let i=0;i<3;i++){const q=(S.t*.5+i/3)%1;ctx.globalAlpha=a*(1-q);ctx.fillText('z',p.x+r*.8+q*r*.9,p.y-r*.6-q*r*1.6)}}
   if(o.type==='anger'){for(let i=0;i<3;i++){const x=p.x+(i-1)*r*.45,h=r*(.5+.35*Math.abs(Math.sin(S.t*11+i*2)));ctx.fillStyle=hexA(i===1?'#ffb08a':T.col,.75);ctx.beginPath();ctx.moveTo(x-r*.2,p.y-r*.55);ctx.quadraticCurveTo(x,p.y-r*.55-h,x+r*.2,p.y-r*.55);ctx.fill()}}
   ctx.globalAlpha=1}
+function chev(x,y,s,dir,alpha,col){if(alpha<=0)return;ctx.strokeStyle=hexA(col,alpha);ctx.lineWidth=Math.max(1.5,s*.22);ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(x-s,y-dir*s*.55);ctx.lineTo(x,y+dir*s*.55);ctx.lineTo(x+s,y-dir*s*.55);ctx.stroke()}
 function drawPud(o){const p=proj(o.x,0,o.z);if(!p)return;const a=clamp(1-(o.z-S.z-60)/50,0,1);ctx.globalAlpha=a*.8;ctx.fillStyle='rgba(120,100,70,.5)';ctx.strokeStyle='rgba(184,162,122,.6)';ctx.lineWidth=1;
   ctx.beginPath();ctx.ellipse(p.x,p.y,p.k*.8,p.k*.22,0,0,TAU);ctx.fill();ctx.stroke();ctx.globalAlpha=1}
 function drawBody(T,x,y,r,ph,eyes){drawGlow(T.col,x,y,r*2.6,.5);ctx.save();ctx.translate(x,y);ctx.fillStyle='#0b0a12';ctx.strokeStyle=T.col;ctx.lineWidth=Math.max(1.5,r*.12);ctx.lineJoin='round';
@@ -591,7 +615,7 @@ function drawWisp(){const p=proj(S.x,S.y+.55,S.z);if(!p)return;const tier=S.tier
 function wrapText(txt,x,y,maxW,lh){const words=txt.split(' ');let line='',yy=y;for(const w of words){const test=line?line+' '+w:w;if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line,x,yy);line=w;yy+=lh}else line=test}if(line)ctx.fillText(line,x,yy)}
 function render(){ctx.setTransform(DPR,0,0,DPR,0,0);
   if(!S){drawMenu();return}
-  const sh=S.shake*8;ctx.save();ctx.translate(rnd(-sh,sh),rnd(-sh,sh));
+  const sh=SHAKE?S.shake*8:0;ctx.save();ctx.translate(rnd(-sh,sh),rnd(-sh,sh));
   drawBg();drawFloor();
   const list=S.objs.slice().sort((a,b)=>b.z-a.z);
   for(const o of list){if(o.z<S.z-.5)continue;if(o.kind==='ob')drawShadowOb(o);else if(o.kind==='mote')drawMote(o);else if(o.kind==='pud')drawPud(o);else drawHelp(o)}
@@ -602,7 +626,7 @@ function render(){ctx.setTransform(DPR,0,0,DPR,0,0);
   for(const r of S.rings){const k=1-r.life/r.max,e=1-Math.pow(1-k,3);ctx.globalAlpha=(1-k)*.8;ctx.strokeStyle=r.col;ctx.lineWidth=r.w*(1-k*.6);ctx.beginPath();ctx.arc(r.x,r.y,Math.max(0,lerp(r.r,r.R,e)),0,TAU);ctx.stroke()}ctx.globalAlpha=1;
   ctx.restore();
   // speed lines streaming out from the light
-  if(S.v>15){const a=clamp((S.v-15)/15,0,1)*.16,vx=W/2-S.camX*F/ZMAX;ctx.strokeStyle='rgba(255,255,255,'+a+')';ctx.lineWidth=1.5;ctx.lineCap='round';
+  if(S.v>15&&SHAKE){const a=clamp((S.v-15)/15,0,1)*.16,vx=W/2-S.camX*F/ZMAX;ctx.strokeStyle='rgba(255,255,255,'+a+')';ctx.lineWidth=1.5;ctx.lineCap='round';
     for(let i=0;i<22;i++){const ang=i*2.39996,q=((S.t*S.v*.06+i*.137)%1),r0=Math.max(W,H)*(.12+q*.9),r1=r0+30+S.v*2.2;const cx=Math.cos(ang),cy=Math.sin(ang);ctx.beginPath();ctx.moveTo(vx+cx*r0,HY+cy*r0);ctx.lineTo(vx+cx*r1,HY+cy*r1);ctx.stroke()}}
   if(S.dim>0){ctx.fillStyle='rgba(4,4,10,'+S.dim+')';ctx.fillRect(0,0,W,H)}
   if(S.help&&S.help.k==='meditation'){ctx.fillStyle='rgba(110,150,210,.1)';ctx.fillRect(0,0,W,H)}
@@ -691,8 +715,16 @@ function gameOver(){if(S.state==='over')return;S.state='over';$('contBtn').hidde
 function toMenu(){S=null;Sound.setMode('menu',0);Sound.setPresence({});Sound.setPaused(false);for(const id of ['over','pause','hud'])$(id).hidden=true;$('menu').hidden=false;menuInfo()}
 function menuInfo(){$('menuBoard').innerHTML=metaHTML(0)+boardHTML(boardLoad(),null,5)}
 function togglePause(){if(!S)return;if(S.state==='play'){S.state='paused';$('pause').hidden=false}else if(S.state==='paused'){S.state='play';$('pause').hidden=true;last=performance.now()}Sound.setPaused(S.state==='paused')}
+
+/* ---------------- feel settings: vibration and screen shake ---------------- */
+let VIB=store.get('drift.vib')!=='0',SHAKE=store.get('drift.shake')!=='0';
+const buzz=p=>{if(!VIB||!navigator.vibrate)return;try{navigator.vibrate(p)}catch(e){}};
+function feelToggles(){for(const id of ['vibTog','vibTog2'])$(id).classList.toggle('off',!VIB);for(const id of ['shakeTog','shakeTog2'])$(id).classList.toggle('off',!SHAKE)}
 function syncToggles(){for(const [k,ids] of [['music',['musicTog','musicTog2']],['sfx',['sfxTog','sfxTog2']]])for(const id of ids)$(id).classList.toggle('off',!Sound.opts[k])}
 for(const [id,k] of [['musicTog','music'],['musicTog2','music'],['sfxTog','sfx'],['sfxTog2','sfx']])$(id).onclick=()=>{Sound.init();Sound.toggle(k);syncToggles()};
+for(const id of ['vibTog','vibTog2'])$(id).onclick=()=>{VIB=!VIB;store.set('drift.vib',VIB?'1':'0');feelToggles();buzz(30)};
+for(const id of ['shakeTog','shakeTog2'])$(id).onclick=()=>{SHAKE=!SHAKE;store.set('drift.shake',SHAKE?'1':'0');feelToggles()};
+feelToggles();
 $('playBtn').onclick=start;$('contBtn').onclick=askContinue;$('againBtn').onclick=start;$('menuBtn').onclick=toMenu;$('quitBtn').onclick=toMenu;$('resumeBtn').onclick=togglePause;$('pauseBtn').onclick=togglePause;
 if(/iPhone|iPad/.test(navigator.userAgent)&&!navigator.standalone)$('iosTip').hidden=false;
 syncToggles();menuInfo();
