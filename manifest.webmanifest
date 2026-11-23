@@ -1,0 +1,18 @@
+{
+  "name": "Drift",
+  "short_name": "Drift",
+  "description": "A calm endless runner. A little light runs toward the dawn past doubt, guilt and fear.",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#15161f",
+  "theme_color": "#15161f",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
